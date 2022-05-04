@@ -8,3 +8,6 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 findshlibs = "0.10.2"
 symbolic-debuginfo = "8.7.0"
+symbolic-demangle = { version = "8.7.0", default-features = false, features = [
+    "rust",
+] }

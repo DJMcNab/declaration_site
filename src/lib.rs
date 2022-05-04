@@ -1,6 +1,7 @@
 use std::{env::current_exe, fmt, fs};
 
 use findshlibs::SharedLibrary;
+use symbolic_demangle::{Demangle, DemangleOptions};
 
 /// A copy of [Location]
 ///
@@ -49,19 +50,21 @@ pub fn declaration_by_name(name: &str) -> Option<DeclarationSite> {
         let session = object.debug_session().unwrap();
         for function in session.functions() {
             if let Ok(function) = function {
-                if name == function.name.as_ref() {
-                    let line = &function.lines[0];
-                    let file = format!(
-                        "{}/{}",
-                        String::from_utf8_lossy(line.file.dir),
-                        String::from_utf8_lossy(line.file.name)
-                    );
+                if let Some(demangled_name) = function.name.demangle(DemangleOptions::name_only()) {
+                    if name == demangled_name {
+                        let line = &function.lines[0];
+                        let file = format!(
+                            "{}/{}",
+                            String::from_utf8_lossy(line.file.dir),
+                            String::from_utf8_lossy(line.file.name)
+                        );
 
-                    return Some(DeclarationSite {
-                        file,
-                        line: line.line as u32,
-                        col: 0,
-                    });
+                        return Some(DeclarationSite {
+                            file,
+                            line: line.line as u32,
+                            col: 0,
+                        });
+                    }
                 }
             }
         }
