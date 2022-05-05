@@ -1,11 +1,11 @@
 use std::time::Instant;
 
-use declaration_site::declaration_by_val;
+use declaration_site::declaration_of;
 
 fn main() {
     let now = Instant::now();
     let declaration =
-        declaration_by_val(&function_to_find).expect("Should have gotten declaration site");
+        declaration_of(&function_to_find).expect("Should have gotten declaration site");
     println!(
         "Found {declaration} in {elapsed:?}",
         elapsed = now.elapsed()
