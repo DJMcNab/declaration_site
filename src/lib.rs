@@ -6,6 +6,8 @@ use findshlibs::SharedLibrary;
 use symbolic_debuginfo::Function;
 use symbolic_demangle::{Demangle, DemangleOptions};
 
+pub use findshlibs::IterationControl;
+
 /// Attempt to get the declaration site of the function item type of the
 /// given value, using its type name. This is a trivial wrapper around
 /// [`declaration`], but may be easier to use since function item types
@@ -47,11 +49,16 @@ pub fn declaration<T>() -> Option<DeclarationSite> {
 ///
 /// See also "Caveats" in the [module level documentation](crate).
 pub fn declaration_by_name(name: &str) -> Option<DeclarationSite> {
+    let mut result = None;
     for_some_currently_loaded_rust_functions(|demangled_name, function| {
-        (demangled_name == name)
-            .then(|| (&function).try_into().ok())
-            .flatten()
-    })
+        if demangled_name == name {
+            result = (&function).try_into().ok();
+            IterationControl::Break
+        } else {
+            IterationControl::Continue
+        }
+    });
+    result
 }
 
 /// Run `callback` on each currently loaded function which can be demangled in
@@ -67,9 +74,15 @@ pub fn declaration_by_name(name: &str) -> Option<DeclarationSite> {
 /// they may also be used.
 ///
 /// See also "Caveats" in the [module level documentation](crate).
-pub fn for_some_currently_loaded_rust_functions<R>(
-    mut callback: impl FnMut(String, Function) -> Option<R>,
-) -> Option<R> {
+///
+/// Note that `callback` can cause this process to end early by returning [`IterationControl::Break`].
+/// If doing so, return [IterationControl::Continue] to continue
+///
+/// Returning [`()`](unit) will be taken as returning [IterationControl::Continue].
+pub fn for_some_currently_loaded_rust_functions<C>(mut callback: impl FnMut(String, Function) -> C)
+where
+    C: Into<IterationControl>,
+{
     let mut libraries = vec![];
     // `each` might take locks - make this as short as possible to not block
     // backtraces in other threads.
@@ -118,16 +131,15 @@ pub fn for_some_currently_loaded_rust_functions<R>(
                         // signature
                         function.name.demangle(DemangleOptions::name_only())
                     {
-                        match callback(demangled_name, function) {
-                            ret @ Some(_) => return ret,
-                            None => (),
+                        match callback(demangled_name, function).into() {
+                            IterationControl::Break => return,
+                            IterationControl::Continue => (),
                         }
                     }
                 }
             }
         }
     }
-    None
 }
 
 /// A source file location, obtained from a [`symbolic_debuginfo::Function`],

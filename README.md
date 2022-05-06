@@ -28,8 +28,7 @@ for_some_currently_loaded_rust_functions(|name, function| {
         *result = DeclarationSite::try_from(&function).ok();
     };
     // We could bail early here if all names have been filled, but that would
-    // compilacate the example
-    None::<core::convert::Infallible>
+    // complicate the example. See the item level documentation for details
 });
 // Do things with `expected_names`...
 ```
