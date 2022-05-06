@@ -1,5 +1,9 @@
 # Declaration Site
 
+![License](https://img.shields.io/crates/l/declaration-site)
+![Crates.io](https://img.shields.io/crates/v/declaration-site)
+[![Bevy Discord](<https://img.shields.io/discord/691052431525675048.svg?label=(bevy)&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2>)](https://discord.gg/bevy)
+
 Implements iterating through the debug info associated with currently loaded
 objects, to find functions. The main entry point for this crate is
 [`for_some_currently_loaded_rust_functions`], which internally iterates
