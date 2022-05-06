@@ -11,7 +11,15 @@ categories = ["visualization"]
 
 [dependencies]
 findshlibs = "0.10.2"
-symbolic-debuginfo = "8.7.0"
+# Do not use the breakpad feature, which requires the MPL-2.0 nom-supreme
+# Additionally, the breakpad feature seems niche upon first inspection
+symbolic-debuginfo = { version = "8.7.0", default-features = false, features = [
+    "elf",
+    "macho",
+    "ms",
+    "sourcebundle",
+    "wasm",
+] }
 symbolic-demangle = { version = "8.7.0", default-features = false, features = [
     "rust",
 ] }
