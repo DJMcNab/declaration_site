@@ -182,39 +182,6 @@ pub enum Object<'data> {
 }
 
 impl<'data> Object<'data> {
-    /// Tests whether the buffer could contain an object.
-    pub fn test(data: &[u8]) -> bool {
-        Self::peek(data) != FileFormat::Unknown
-    }
-
-    /// Tries to infer the object type from the start of the given buffer.
-    pub fn peek(data: &[u8]) -> FileFormat {
-        peek(data, false)
-    }
-
-    /// Tries to parse a supported object from the given slice.
-    pub fn parse(data: &'data [u8]) -> Result<Self, ObjectError> {
-        macro_rules! parse_object {
-            ($kind:ident, $file:ident, $data:expr) => {
-                Object::$kind($file::parse(data).map_err(ObjectError::transparent)?)
-            };
-        }
-
-        let object = match Self::peek(data) {
-            FileFormat::Elf => parse_object!(Elf, ElfObject, data),
-            FileFormat::MachO => parse_object!(MachO, MachObject, data),
-            FileFormat::Pdb => parse_object!(Pdb, PdbObject, data),
-            FileFormat::Pe => parse_object!(Pe, PeObject, data),
-            FileFormat::SourceBundle => parse_object!(SourceBundle, SourceBundle, data),
-            FileFormat::Wasm => parse_object!(Wasm, WasmObject, data),
-            FileFormat::Unknown | FileFormat::Breakpad => {
-                return Err(ObjectError::new(ObjectErrorRepr::UnsupportedObject))
-            }
-        };
-
-        Ok(object)
-    }
-
     /// The container format of this file, corresponding to the variant of this instance.
     pub fn file_format(&self) -> FileFormat {
         match *self {
@@ -334,11 +301,6 @@ impl<'data> Object<'data> {
     /// Determines whether this object is malformed and was only partially parsed
     pub fn is_malformed(&self) -> bool {
         match_inner!(self, Object(ref o) => o.is_malformed())
-    }
-
-    /// Returns the raw data of the underlying buffer.
-    pub fn data(&self) -> &'data [u8] {
-        match_inner!(self, Object(ref o) => o.data())
     }
 }
 
@@ -585,11 +547,6 @@ enum ArchiveInner<'d> {
 pub struct Archive<'d>(ArchiveInner<'d>);
 
 impl<'d> Archive<'d> {
-    /// Tests whether this buffer contains a valid object archive.
-    pub fn test(data: &[u8]) -> bool {
-        Self::peek(data) != FileFormat::Unknown
-    }
-
     /// Tries to infer the object archive type from the start of the given buffer.
     pub fn peek(data: &[u8]) -> FileFormat {
         peek(data, true)
@@ -617,77 +574,12 @@ impl<'d> Archive<'d> {
         Ok(archive)
     }
 
-    /// The container format of this file.
-    pub fn file_format(&self) -> FileFormat {
-        match self.0 {
-            ArchiveInner::Elf(_) => FileFormat::Elf,
-            ArchiveInner::MachO(_) => FileFormat::MachO,
-            ArchiveInner::Pdb(_) => FileFormat::Pdb,
-            ArchiveInner::Pe(_) => FileFormat::Pe,
-            ArchiveInner::Wasm(_) => FileFormat::Wasm,
-            ArchiveInner::SourceBundle(_) => FileFormat::SourceBundle,
-        }
-    }
-
     /// Returns an iterator over all objects contained in this archive.
     pub fn objects(&self) -> ObjectIterator<'d, '_> {
         ObjectIterator(map_inner!(self.0, ArchiveInner(ref a) =>
             ObjectIteratorInner(a.objects())))
     }
-
-    /// Returns the number of objects in this archive.
-    pub fn object_count(&self) -> usize {
-        match_inner!(self.0, ArchiveInner(ref a) => a.object_count())
-    }
-
-    /// Resolves the object at the given index.
-    ///
-    /// Returns `Ok(None)` if the index is out of bounds, or `Err` if the object exists but cannot
-    /// be parsed.
-    pub fn object_by_index(&self, index: usize) -> Result<Option<Object<'d>>, ObjectError> {
-        match self.0 {
-            ArchiveInner::Elf(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::Elf))
-                .map_err(ObjectError::transparent),
-            ArchiveInner::MachO(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::MachO))
-                .map_err(ObjectError::transparent),
-            ArchiveInner::Pdb(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::Pdb))
-                .map_err(ObjectError::transparent),
-            ArchiveInner::Pe(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::Pe))
-                .map_err(ObjectError::transparent),
-            ArchiveInner::SourceBundle(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::SourceBundle))
-                .map_err(ObjectError::transparent),
-            ArchiveInner::Wasm(ref a) => a
-                .object_by_index(index)
-                .map(|opt| opt.map(Object::Wasm))
-                .map_err(ObjectError::transparent),
-        }
-    }
-
-    /// Returns whether this is a multi-object archive.
-    ///
-    /// This may also return true if there is only a single object inside the archive.
-    pub fn is_multi(&self) -> bool {
-        match_inner!(self.0, ArchiveInner(ref a) => a.is_multi())
-    }
 }
-
-// impl<'slf, 'd: 'slf> AsSelf<'slf> for Archive<'d> {
-//     type Ref = Archive<'slf>;
-
-//     fn as_self(&'slf self) -> &Self::Ref {
-//         unsafe { std::mem::transmute(self) }
-//     }
-// }
 
 #[allow(clippy::large_enum_variant)]
 enum ObjectIteratorInner<'d, 'a> {
