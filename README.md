@@ -53,6 +53,12 @@ See [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
+Some parts of this work (those in [src/symbolic_object](src/symbolic_object/mod.rs)) are
+adapted from works licensed only under the MIT license, which can be found in
+[src/symbolic_object/LICENSE](src/symbolic_object/LICENSE). Modifications are also licensed
+under the terms below. Note that this is the same license as the already existing
+`symbolic-debuginfo` dependency.
+
 Licensed under either of
 
 - Apache License, Version 2.0

@@ -2,6 +2,8 @@
 #![doc = include_str!("../README.md")]
 use std::{env::current_exe, error::Error, fmt, fs};
 
+mod symbolic_object;
+
 use findshlibs::SharedLibrary;
 use symbolic_debuginfo::Function;
 use symbolic_demangle::{Demangle, DemangleOptions};
@@ -111,7 +113,7 @@ where
             Ok(it) => it,
             _ => continue,
         };
-        let archive = match symbolic_debuginfo::Archive::parse(&file_data) {
+        let archive = match symbolic_object::Archive::parse(&file_data) {
             Ok(it) => it,
             Err(_) => continue,
         };
